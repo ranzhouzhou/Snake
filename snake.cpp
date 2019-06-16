@@ -38,6 +38,7 @@ struct WALL
 	coor wcoor[100];
 }wall;
 
+int speed;
 int score;
 int scorelist[10] = {0,0,0,0,0,0,0,0,0,0};
 
@@ -52,7 +53,22 @@ IMAGE snakerighteat;
 IMAGE snakebody;
 IMAGE foodimage;
 IMAGE wallimage;
-
+int GetSpeed(int i) 
+{
+	if (i <= 2)
+	{
+		return 0;
+	}
+	if (i <= 3)
+	{
+		return 100;
+	}
+	if (i <= 4)
+	{
+		return 200;
+	}
+	return 300;
+}
 void GetWall()
 {
 	wall.sum = 9;
@@ -114,6 +130,29 @@ void MoveSnake()
 	case goright:
 		snake.scoor[0].x += 20;
 		break;
+	}
+	for (int i = 0; i < snake.n; i++)
+	{
+		if (snake.scoor[i].x < 0)
+		{
+			snake.scoor[i].x += 640;
+			break;
+		}
+		if (snake.scoor[i].x >= 640)
+		{
+			snake.scoor[i].x -= 640;
+			break;
+		}
+		if (snake.scoor[i].y < 0)
+		{
+			snake.scoor[i].y += 480;
+			break;
+		}
+		if (snake.scoor[i].y >= 640)
+		{
+			snake.scoor[i].y -= 640;
+			break;
+		}
 	}
 	switch (snake.direction)
 	{
@@ -207,7 +246,8 @@ void Gameover()
 	TCHAR s[3];
 	_stprintf_s(s, _T("%d"), score);
 	outtextxy(350, 250, s);
-	Sleep(3000);
+	outtextxy(100, 300, _T("按任意键查看排行榜"));
+	_getch();
 	cleardevice();
 	settextstyle(20, 0, _T("黑体"));
 	outtextxy(200, 20, _T("排行榜"));
@@ -218,8 +258,7 @@ void Gameover()
 		_stprintf_s(l, _T("%d"), scorelist[i]);
 		outtextxy(200, i * 20 + 50, l);
 	}
-	Sleep(4000);
-	exit(0);
+	_getch();
 }
 void CollisionDetection() 
 {
@@ -273,7 +312,7 @@ int main()
 				{
 					putimage(snake.scoor[i].x, snake.scoor[i].y, &snakebody);
 				}
-				Sleep(400);
+				Sleep(400 - GetSpeed(snake.n));
 				ProduceFood();
 			}
 			cleardevice();
@@ -283,7 +322,7 @@ int main()
 				putimage(wall.wcoor[i].x, wall.wcoor[i].y, &wallimage);
 			}
 			MoveSnake();
-			Sleep(400);
+			Sleep(400 - GetSpeed(snake.n));
 			EatFood();
 			CollisionDetection();
 		}
