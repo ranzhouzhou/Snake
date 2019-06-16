@@ -6,6 +6,7 @@
 #include <graphics.h>
 #include <conio.h>
 #include <time.h>
+#include <sstream>
 using namespace std;
 
 struct coor 
@@ -31,6 +32,14 @@ struct FOOD
 	coor fcoor;
 	int flag;
 }food;
+struct WALL
+{
+	int sum;
+	coor wcoor[100];
+}wall;
+
+int score;
+int scorelist[10] = {0,0,0,0,0,0,0,0,0,0};
 
 IMAGE snakeup;
 IMAGE snakedown;
@@ -42,7 +51,18 @@ IMAGE snakelefteat;
 IMAGE snakerighteat;
 IMAGE snakebody;
 IMAGE foodimage;
+IMAGE wallimage;
 
+void GetWall()
+{
+	wall.sum = 9;
+	for (int i = 0, j = 1; i < wall.sum; i++)
+	{
+		wall.wcoor[i].x = j * 20;
+		wall.wcoor[i].y = j * 20;
+		j++;
+	}
+}
 void InitializeGame()
 {
 	initgraph(640, 480);
@@ -58,11 +78,13 @@ void InitializeGame()
 	loadimage(&snakerighteat, _T("resource\\snakerighteat.jpg"), 20, 20);
 	loadimage(&snakebody, _T("resource\\snakebody.jpg"), 20, 20);
 	loadimage(&foodimage, _T("resource\\foodimage.jpg"), 20, 20);
+	loadimage(&wallimage, _T("resource\\wallimage.jpg"), 20, 20);
 	snake.scoor[0].x = 320;
 	snake.scoor[0].y = 240;
 	snake.n = 2;
 	snake.direction = goright;
 	food.flag = 0;
+	GetWall();
 }
 void ProduceFood()
 {
@@ -159,6 +181,64 @@ void GetDirection()
 		break;
 	}
 }
+void GetScorelist()
+{
+	for (int i = 0; i < 10; i++)
+	{
+		if (score >= scorelist[i])
+		{
+			for (int j = 9; j > i; j--)
+			{
+				scorelist[j] = scorelist[j - 1];
+			}
+			scorelist[i] = score;
+			break;
+		}
+	}
+}
+void Gameover()
+{
+	score = snake.n - 2;
+	cleardevice();
+	settextcolor(BLACK);
+	settextstyle(50, 0, _T("黑体"));
+	outtextxy(200, 200, _T("game over"));
+	outtextxy(200, 250, _T("分数"));
+	TCHAR s[3];
+	_stprintf_s(s, _T("%d"), score);
+	outtextxy(350, 250, s);
+	Sleep(3000);
+	cleardevice();
+	settextstyle(20, 0, _T("黑体"));
+	outtextxy(200, 20, _T("排行榜"));
+	GetScorelist();
+	for (int i = 0; i < 10; i++)
+	{
+		TCHAR l[3];
+		_stprintf_s(l, _T("%d"), scorelist[i]);
+		outtextxy(200, i * 20 + 50, l);
+	}
+	Sleep(4000);
+	exit(0);
+}
+void CollisionDetection() 
+{
+	for (int i = 0; i < wall.sum; i++)
+	{
+		if (snake.scoor[0].x == wall.wcoor[i].x && snake.scoor[0].y == wall.wcoor[i].y)
+		{
+			Gameover();
+		}
+
+	}
+	for (int i = snake.n - 1; i > 0; i--)
+	{
+		if (snake.scoor[0].x == snake.scoor[i].x && snake.scoor[0].y == snake.scoor[i].y)
+		{
+			Gameover();
+		}
+	}
+}
 int main()
 {
 	InitializeGame();
@@ -170,6 +250,10 @@ int main()
 			{
 				cleardevice();
 				putimage(food.fcoor.x, food.fcoor.y, &foodimage);
+				for (int i = 0; i < wall.sum; i++)
+				{
+					putimage(wall.wcoor[i].x, wall.wcoor[i].y, &wallimage);
+				}
 				switch (snake.direction)
 				{
 				case goup:
@@ -194,17 +278,20 @@ int main()
 			}
 			cleardevice();
 			putimage(food.fcoor.x, food.fcoor.y, &foodimage);
+			for (int i = 0; i < wall.sum; i++)
+			{
+				putimage(wall.wcoor[i].x, wall.wcoor[i].y, &wallimage);
+			}
 			MoveSnake();
 			Sleep(400);
 			EatFood();
+			CollisionDetection();
 		}
 		GetDirection();
 	}
 	return 0;
 }
 
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
 
 // 入门提示: 
 //   1. 使用解决方案资源管理器窗口添加/管理文件
