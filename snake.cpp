@@ -7,6 +7,7 @@
 #include <conio.h>
 #include <time.h>
 #include <sstream>
+#include <fstream>
 using namespace std;
 
 struct coor 
@@ -37,10 +38,15 @@ struct WALL
 	int sum;
 	coor wcoor[100];
 }wall;
+struct SCORELIST
+{
+	int simple[10];
+	int difficult[10];
+}scorelist;
 
-int speed;
 int score;
-int scorelist[10] = {0,0,0,0,0,0,0,0,0,0};
+int againflag;
+int level;
 
 IMAGE snakeup;
 IMAGE snakedown;
@@ -53,30 +59,83 @@ IMAGE snakerighteat;
 IMAGE snakebody;
 IMAGE foodimage;
 IMAGE wallimage;
+IMAGE background;
+
 int GetSpeed(int i) 
 {
 	if (i <= 2)
 	{
-		return 0;
+		return level * 100;
 	}
 	if (i <= 3)
 	{
-		return 100;
+		return level * 125;
 	}
-	if (i <= 4)
-	{
-		return 200;
-	}
-	return 300;
+	return level * 150;
 }
-void GetWall()
+void GetWall(int l)
 {
-	wall.sum = 9;
-	for (int i = 0, j = 1; i < wall.sum; i++)
+	if (l == 1)
 	{
-		wall.wcoor[i].x = j * 20;
-		wall.wcoor[i].y = j * 20;
-		j++;
+		wall.sum = 36;
+		for (int i = 0, j = 0; i < 9; i++)
+		{
+			wall.wcoor[i].x = j * 20;
+			wall.wcoor[i].y = j * 20;
+			j++;
+		}
+		for (int i = 9, j = 1; i < 27; i++)
+		{
+			wall.wcoor[i].x = 640 - j * 20;
+			wall.wcoor[i].y = 400;
+			j++;
+		}
+		for (int i = 27, j = 0; i < 36; i++)
+		{
+			wall.wcoor[i].x = 440;
+			wall.wcoor[i].y = j * 20;
+			j++;
+		}
+	}
+	if (l == 2)
+	{
+		wall.sum = 64;
+		for (int i = 0, j = 0; i < 9; i++)
+		{
+			wall.wcoor[i].x = j * 20;
+			wall.wcoor[i].y = j * 20;
+			j++;
+		}
+		for (int i = 9, j = 1; i < 27; i++)
+		{
+			wall.wcoor[i].x = 640 - j * 20;
+			wall.wcoor[i].y = 400;
+			j++;
+		}
+		for (int i = 27, j = 1; i < 34; i++)
+		{
+			wall.wcoor[i].x = 280;
+			wall.wcoor[i].y = 400 - j * 20;
+			j++;
+		}
+		for (int i = 34, j = 0; i < 46; i++)
+		{
+			wall.wcoor[i].x = 440;
+			wall.wcoor[i].y = j * 20;
+			j++;
+		}
+		for (int i = 46, j = 1; i < 56; i++)
+		{
+			wall.wcoor[i].x = 440 + j * 20;
+			wall.wcoor[i].y = 220;
+			j++;
+		}
+		for (int i = 56, j = 0; i < 64; i++)
+		{
+			wall.wcoor[i].x = j * 20;
+			wall.wcoor[i].y = 280 + j * 20;
+			j++;
+		}
 	}
 }
 void InitializeGame()
@@ -95,19 +154,56 @@ void InitializeGame()
 	loadimage(&snakebody, _T("resource\\snakebody.jpg"), 20, 20);
 	loadimage(&foodimage, _T("resource\\foodimage.jpg"), 20, 20);
 	loadimage(&wallimage, _T("resource\\wallimage.jpg"), 20, 20);
+	loadimage(&background, _T("resource\\background.jpg"), 640,480);
+	putimage(0,0, &background);
+	int aa;
+	aa = _getch();
+	if (aa == 83 || aa == 115)
+	{
+		level = 1;
+	}
+	else if (aa == 68 || aa == 100)
+	{
+		level = 2;
+	}
+	else
+	{
+		level = 1;
+	}
+	cleardevice();
 	snake.scoor[0].x = 320;
 	snake.scoor[0].y = 240;
 	snake.n = 2;
 	snake.direction = goright;
 	food.flag = 0;
-	GetWall();
+	againflag = 0;
+	GetWall(level);
 }
 void ProduceFood()
 {
-	srand(unsigned(time(0)));
-	food.fcoor.x = (rand() % 31 + 1) * 20;
-	food.fcoor.y = (rand() % 23 + 1) * 20;
-	food.flag = 1;
+	while (food.flag == 0)
+	{
+		srand(unsigned(time(0)));
+		food.fcoor.x = (rand() % 31 + 1) * 20;
+		food.fcoor.y = (rand() % 23 + 1) * 20;
+		food.flag = 1;
+		for (int i = 0; i < wall.sum; i++)
+		{
+			if (food.fcoor.x == wall.wcoor[i].x && food.fcoor.y == wall.wcoor[i].y)
+			{
+				food.flag = 0;
+				break;
+			}
+		}
+		for (int i = 0; i < snake.n; i++)
+		{
+			if (food.fcoor.x == snake.scoor[i].x && food.fcoor.y == snake.scoor[i].y)
+			{
+				food.flag = 0;
+				break;
+			}
+		}
+	}	
 }
 void MoveSnake()
 {
@@ -148,9 +244,9 @@ void MoveSnake()
 			snake.scoor[i].y += 480;
 			break;
 		}
-		if (snake.scoor[i].y >= 640)
+		if (snake.scoor[i].y >= 480)
 		{
-			snake.scoor[i].y -= 640;
+			snake.scoor[i].y -= 480;
 			break;
 		}
 	}
@@ -220,19 +316,77 @@ void GetDirection()
 		break;
 	}
 }
-void GetScorelist()
+void GetScorelist(int l)
 {
-	for (int i = 0; i < 10; i++)
+	if (l == 1)
 	{
-		if (score >= scorelist[i])
+		ifstream infile;
+		infile.open("resource\\simplescore.txt");
+		int j = 0;
+		while (!infile.eof() && j < 10)
 		{
-			for (int j = 9; j > i; j--)
-			{
-				scorelist[j] = scorelist[j - 1];
-			}
-			scorelist[i] = score;
-			break;
+			string str;
+			getline(infile, str);
+			stringstream ss;
+			ss << str;
+			ss >> scorelist.simple[j];
+			j++;
 		}
+		infile.close();
+		for (int i = 0; i < 10; i++)
+		{
+			if (score >= scorelist.simple[i])
+			{
+				for (int j = 9; j > i; j--)
+				{
+					scorelist.simple[j] = scorelist.simple[j - 1];
+				}
+				scorelist.simple[i] = score;
+				break;
+			}
+		}
+		ofstream outfile;
+		outfile.open("resource\\simplescore.txt");
+		for (int i = 0; i < 10; i++)
+		{
+			outfile << scorelist.simple[i] << endl;
+		}
+		outfile.close();
+	}
+	else if (l == 2)
+	{
+		ifstream infile;
+		infile.open("resource\\difficultscore.txt");
+		int j = 0;
+		while (!infile.eof() && j < 10)
+		{
+			string str;
+			getline(infile, str);
+			stringstream ss;
+			ss << str;
+			ss >> scorelist.difficult[j];
+			j++;
+		}
+		infile.close();
+		for (int i = 0; i < 10; i++)
+		{
+			if (score >= scorelist.difficult[i])
+			{
+				for (int j = 9; j > i; j--)
+				{
+					scorelist.difficult[j] = scorelist.difficult[j - 1];
+				}
+				scorelist.difficult[i] = score;
+				break;
+			}
+		}
+		ofstream outfile;
+		outfile.open("resource\\difficultscore.txt");
+		for (int i = 0; i < 10; i++)
+		{
+			outfile << scorelist.difficult[i] << endl;
+		}
+		outfile.close();
 	}
 }
 void Gameover()
@@ -251,14 +405,47 @@ void Gameover()
 	cleardevice();
 	settextstyle(20, 0, _T("黑体"));
 	outtextxy(200, 20, _T("排行榜"));
-	GetScorelist();
-	for (int i = 0; i < 10; i++)
+	GetScorelist(level);
+	if (level == 1) 
 	{
-		TCHAR l[3];
-		_stprintf_s(l, _T("%d"), scorelist[i]);
-		outtextxy(200, i * 20 + 50, l);
+		outtextxy(300, 20, _T("简单"));
+		for (int i = 0; i < 10; i++)
+		{
+			TCHAR l[3];
+			_stprintf_s(l, _T("%d"), scorelist.simple[i]);
+			outtextxy(200, i * 20 + 50, l);
+		}
 	}
+	else if (level == 2)
+	{
+		outtextxy(300, 20, _T("困难"));
+		for (int i = 0; i < 10; i++)
+		{
+			TCHAR l[3];
+			_stprintf_s(l, _T("%d"), scorelist.difficult[i]);
+			outtextxy(200, i * 20 + 50, l);
+		}
+	}
+	outtextxy(200, 320, _T("按任意键继续"));
 	_getch();
+	cleardevice();
+	settextstyle(50, 0, _T("黑体"));
+	outtextxy(200, 200, _T("Y重新开始"));
+	outtextxy(200, 300, _T("N退出游戏"));
+	int aa;
+	aa = _getch();
+	if (aa == 89 || aa == 121)
+	{
+		againflag = 1;
+	}
+	else if (aa == 78 || aa == 110)
+	{
+		exit(0);
+	}
+	else
+	{
+		againflag = 1;
+	}
 }
 void CollisionDetection() 
 {
@@ -280,62 +467,67 @@ void CollisionDetection()
 }
 int main()
 {
-	InitializeGame();
-	while (1) 
+	againflag = 1;
+	while (againflag == 1) 
 	{
-		while (!_kbhit())
+		InitializeGame();
+		while (1)
 		{
-			if (food.flag == 0)
+			while (!_kbhit())
 			{
+				if (food.flag == 0)
+				{
+					cleardevice();
+					putimage(food.fcoor.x, food.fcoor.y, &foodimage);
+					for (int i = 0; i < wall.sum; i++)
+					{
+						putimage(wall.wcoor[i].x, wall.wcoor[i].y, &wallimage);
+					}
+					switch (snake.direction)
+					{
+					case goup:
+						putimage(snake.scoor[0].x, snake.scoor[0].y, &snakeupeat);
+						break;
+					case godown:
+						putimage(snake.scoor[0].x, snake.scoor[0].y, &snakedowneat);
+						break;
+					case goleft:
+						putimage(snake.scoor[0].x, snake.scoor[0].y, &snakelefteat);
+						break;
+					case goright:
+						putimage(snake.scoor[0].x, snake.scoor[0].y, &snakerighteat);
+						break;
+					}
+					for (int i = snake.n - 2; i > 0; i--)
+					{
+						putimage(snake.scoor[i].x, snake.scoor[i].y, &snakebody);
+					}
+					Sleep(500 - GetSpeed(snake.n));
+					ProduceFood();
+				}
 				cleardevice();
 				putimage(food.fcoor.x, food.fcoor.y, &foodimage);
 				for (int i = 0; i < wall.sum; i++)
 				{
 					putimage(wall.wcoor[i].x, wall.wcoor[i].y, &wallimage);
 				}
-				switch (snake.direction)
+				MoveSnake();
+				Sleep(500 - GetSpeed(snake.n));
+				EatFood();
+				CollisionDetection();
+				if (againflag == 1)
 				{
-				case goup:
-					putimage(snake.scoor[0].x, snake.scoor[0].y, &snakeupeat);
-					break;
-				case godown:
-					putimage(snake.scoor[0].x, snake.scoor[0].y, &snakedowneat);
-					break;
-				case goleft:
-					putimage(snake.scoor[0].x, snake.scoor[0].y, &snakelefteat);
-					break;
-				case goright:
-					putimage(snake.scoor[0].x, snake.scoor[0].y, &snakerighteat);
 					break;
 				}
-				for (int i = snake.n - 2; i > 0; i--)
-				{
-					putimage(snake.scoor[i].x, snake.scoor[i].y, &snakebody);
-				}
-				Sleep(400 - GetSpeed(snake.n));
-				ProduceFood();
 			}
-			cleardevice();
-			putimage(food.fcoor.x, food.fcoor.y, &foodimage);
-			for (int i = 0; i < wall.sum; i++)
+			if (againflag == 1)
 			{
-				putimage(wall.wcoor[i].x, wall.wcoor[i].y, &wallimage);
+				break;
 			}
-			MoveSnake();
-			Sleep(400 - GetSpeed(snake.n));
-			EatFood();
-			CollisionDetection();
+			GetDirection();
 		}
-		GetDirection();
+
 	}
 	return 0;
 }
 
-
-// 入门提示: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件
